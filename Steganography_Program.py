@@ -20,13 +20,13 @@ def mainMenu():
         print("Please enter a number from 1-3")
         mainMenu()
 
-    if menu == 1:
+    if choice == 1:
         print("Encrypt a message in an image.")
         # this is where we will call the encryption function
-    elif menu == 2:
+    elif choice == 2:
         print("Decrypt a message stored in an image.")
         # this is where we will call the decryption function
-    elif menu == 3:
+    elif choice == 3:
         sys.exit("\n Thank you for using our Steganography Program!\n")
     else:
         print("\n Invalid entry.  Try again.\n")
