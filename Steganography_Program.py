@@ -28,6 +28,12 @@ def mainMenu():
     else:
         sys.exit("\n Thank you for using our Steganography Program!\n")
 
+#encode message into binary
+
+
+#decode message from binary to ascii
+
+
 #image file for encryption
 
             
