@@ -4,10 +4,6 @@ import hashlib
 
 #Main menu and directions for the program.
 def mainMenu():
-    print("Welcome to the LED Zeplin Steganography Program")
-    print(
-        "This program will allow you to encrypt an image with a message\n"\
-        + "or decrypt a message.\n")
     print(
         "Press 1 if you want to encrypt a file.\n" \
         + "Press 2 if you want to decrypt a file.\n" \
@@ -16,6 +12,9 @@ def mainMenu():
 
     if choice.isdigit():
         choice = int(choice)
+        if choice > 3:
+            print("\n Invalid entry.  Try again.\n")
+            mainMenu()
     else:
         print("Please enter a number from 1-3")
         mainMenu()
@@ -26,11 +25,8 @@ def mainMenu():
     elif choice == 2:
         print("Decrypt a message stored in an image.")
         # this is where we will call the decryption function
-    elif choice == 3:
-        sys.exit("\n Thank you for using our Steganography Program!\n")
     else:
-        print("\n Invalid entry.  Try again.\n")
-        mainMenu()
+        sys.exit("\n Thank you for using our Steganography Program!\n")
 
 #image file for encryption
 
@@ -57,6 +53,10 @@ def fileHash(fileName):
     print(fileName + " MD5 hash:" + hashVal + "\n")
     
 # ---------------------------------------------------------------------
+print("Welcome to the LED Zeplin Steganography Program")
+    print(
+        "This program will allow you to encrypt an image with a message\n"\
+        + "or decrypt a message.\n")
 mainMenu()
 
 
