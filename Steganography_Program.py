@@ -8,16 +8,13 @@ def mainMenu():
         "Press 1 if you want to encrypt a file.\n" \
         + "Press 2 if you want to decrypt a file.\n" \
         + "Press 3 to exit.\n")
-    choice = input("How would you like to proceed: ")
 
-    if choice.isdigit():
-        choice = int(choice)
-        if choice > 3:
-            print("\n Invalid entry.  Try again.\n")
-            mainMenu()
-    else:
-        print("Please enter a number from 1-3")
-        mainMenu()
+    while True:
+        try:
+            choice = int(input("How would you like to proceed: "))
+            break
+        except ValueError:
+            print("Please enter a number 1 - 3.")
 
     if choice == 1:
         print("Encrypt a message in an image.")
@@ -25,10 +22,14 @@ def mainMenu():
     elif choice == 2:
         print("Decrypt a message stored in an image.")
         # this is where we will call the decryption function
-    else:
+    elif choice == 3:
         sys.exit("\n Thank you for using our Steganography Program!\n")
+    else:
+        print("\n Invalid entry.  Please enter a number from 1-3\n")
+        mainMenu()
 
-#encode message from ascii into binary
+        
+  #encode message from ascii into binary
 
 
 #decode message from binary to ascii
