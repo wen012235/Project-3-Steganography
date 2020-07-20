@@ -12,17 +12,9 @@ messageList = [] # hold secret message
 ln = 0 # letters needed
 letListQty = [] #Number of letters that can be stored in each section of the image
 tLet = 0 #Total letters that can be stored
+cHead = "" # Number of items in headList
+headList = [] # Holds stopping points
 
-#List of header variables
-SOFList = []
-SOFOList = []
-SOF2List = []
-DHTList = []
-DQTList = []
-DRIList = []
-EOFList = []
-SOSList = []
-COMList = []
 
 #Main Menu and Directions for the program
 def mainMenu():
@@ -42,7 +34,7 @@ def mainMenu():
         print("Encrypt a message in an image.")
         # this is where we will call the encryption function
         openFile()
-        calcJPG()
+        loadDataJPG()
         asc2bin()
         bytesNeeded()
         fit()
@@ -119,20 +111,23 @@ def openFile():
     #showFile(file)
 
 # Calculations for JPG Encryption locations
-def calcJPG():
+def loadDataJPG():
     global data
-    global messageList
-    global tLet
-    global SOFList
-    global SOFOList
-    global SOF2List
-    global DHTList
-    global DQTList
-    global DRIList
-    global SOSList
-    global EOFList
-    global COMList
     global letListQty
+    global tLet
+    global cHead
+    global headList
+    
+    SOFList = []
+    SOFOList = []
+    SOF2List = []
+    DHTList = []
+    DQTList = []
+    DRIList = []
+    EOFList = []
+    SOSList = []
+    COMList = []
+    
     
     SOF = b"\xFF\xD8\xFF"
     SOFO = b"\xFF\xC0"
@@ -164,119 +159,48 @@ def calcJPG():
     print(SOSList)
     print(COMList)
     print(EOFList)
-
-    #counter for headers 
-    cnt = 0
     
-    if len(DQTList)>0:
-        count = len(DQTList)
-        cnt = count
-        for x in range(count):
-            c = x
-            if c+1 == count:
-                break
-            else:
-                aBytes = DQTList[x+1]-DQTList[x]-6          
-                letQty = int(aBytes / 8)
-                letListQty.append(letQty)
-            
-    if len(SOFOList)>0 and len(SOF2List)>0:
-        if SOFOList[0] < SOF2List[0]:
-            aBytes = SOFOList[0] - DQTList[cnt-1]-6
-            letQty = int(aBytes / 8)
-            letListQty.append(letQty)
-        else:
-            aBytes = SOF2List[0] - DQTList[cnt-1]-6
-            letQty = int(aBytes / 8)
-            letListQty.append(letQty)
-            
-    if len(SOFOList)>0:
-        count = len(SOFOList)
-        aBytes = SOFOList[0] - DQTList[cnt-1]-6
-        letQty = int(aBytes / 8)
-        letListQty.append(letQty)
-        cnt = count
-        for x in range(count):
-            c = x
-            if c+1 == count:
-                break
-            else:
-                aBytes = SOFOList[x+1]-SOFOList[x]-5
-                letQty = int(aBytes / 8)
-                letListQty.append(letQty)
-            
-    if len(SOF2List)>0:
-        count = len(SOF2List)
-        aBytes = SOF2List[0] - DQTList[cnt-1]-6
-        letQty = int(aBytes / 8)
-        letListQty.append(letQty)
-        cnt = count
-        for x in range(count):
-            c = x
-            if c+1 == count:
-                break
-            else:
-                aBytes = SOF2List[x+1]-SOF2List[x]-5
-                letQty = int(aBytes / 8)
-                letListQty.append(letQty)
-            
-    if len(DHTList) > 0:
-        count = len(DHTList)
-        if len(SOFOList)>0 and len(SOF2List)==0:
-            aBytes = DHTList[0] - SOFOList[cnt-1]-5
-        else:
-            aBytes = DHTList[0] - SOF2List[cnt-1]-5
-        letQty = int(aBytes / 8)
-        letListQty.append(letQty)
-        cnt = count
-        for x in range(count):
-            c = x
-            if c+1 == count:
-                break
-            else:
-                aBytes = DHTList[x+1]-DHTList[x]-6
-                letQty = int(aBytes / 8)
-                letListQty.append(letQty)
-
-    if len(SOSList)>0:
-        count = len(SOSList)
-        aBytes = SOSList[0] - DHTList[cnt-1]-6
-        letQty = int(aBytes / 8)
-        letListQty.append(letQty)
-        cnt = count
-        for x in range(count):
-            c = x
-            if c+1 == count:
-                break
-            else:
-                aBytes = SOSList[x+1]-SOSList[x]-6          
-                letQty = int(aBytes / 8)
-                letListQty.append(letQty)
+   
+    cDQT = len(DQTList) # Number of DQT headers 
+    cSOFO = len(SOFOList) # Number SOFO headers
+    cSOF2 = len(SOF2List) # Number SOF2 headers
+    cDHT = len(DHTList) # Number DHT headers
+    cSOS = len(SOSList) # Number SOS headers
+    cCOM = len(COMList) # Number COM headers
     
-    if len(COMList)>0:
-        count = len(COMList)
-        aBytes = COMList[0] - SOSList[cnt-1]-6
+
+    #Fill the list with stopping points
+    headList.append(SOFList[0])
+    for i in range(cDQT):
+        headList.append(DQTList[i])
+    for i in range(cSOFO):
+        headList.append(SOFOList[i])
+    for i in range(cSOF2):
+        headList.append(SOF2List[i])
+    for i in range(cDHT):
+        headList.append(DHTList[i])
+    for i in range(cSOS):
+        headList.append(SOSList[i])
+    for i in range(cCOM):
+        headList.append(COMList[i])
+    headList.append(EOFList[0])
+    headList.sort()
+    print(headList)
+
+
+    #calculate if space to hold message
+ 
+    cnt = len(headList)
+    for x in range(cnt-1):
+        aBytes = headList[x+1] - headList[x] - 6
         letQty = int(aBytes / 8)
         letListQty.append(letQty)
-        cnt = count
-        for x in range(count):
-            c = x
-            if c+1 == count:
-                break
-            else:
-                aBytes = COMList[x+1]-COMList[x]-6          
-                letQty = int(aBytes / 8)
-                letListQty.append(letQty)
-
-    aBytes = EOFList[0] - SOSList[cnt-1]-6
-    letQty = int(aBytes / 8)
-    print(letQty)
-    letListQty.append(letQty)
     print(letListQty)
 
     for item in letListQty:
         tLet = tLet + item
     print(tLet)
+    
     
 #encryption algorithm for JPG
 def encryptJPG():
@@ -284,46 +208,16 @@ def encryptJPG():
     global data
     global ln
     global messageList
-    global SOFList
-    global SOFOList
-    global SOF2List
-    global DHTList
-    global DQTList
-    global DRIList
-    global EOFList
-    global SOSList
-    global COMList
     global letListQty
+    global tLet
+    global cHead
+    global headList
 
 
-    cnt = DQTList[0]+5 # starting count for the file
+   
     
     tmpStr = "" # Holds the secret message string
-    headList = [] # Holds stopping points
-    cDQT = len(DQTList) # Number of DQT headers 
-    cSOFO = len(SOFOList) # Number SOFO headers
-    cSOF2 = len(SOF2List) # Number SOF2 headers
-    cDHT = len(DHTList) # Number DHT headers
-    cSOS = len(SOSList) # Number SOS headers
-    cCOM = len(COMList) # Number COM headers
-    cHead = "" # Number of items in headList
 
-    #Fill the list with stopping points
-    for i in range(cDQT):
-        headList.append(DQTList[i])
-    if cSOFO > 0:
-        for i in range(cSOFO):
-            headList.append(SOFOList[i])
-    if cSOF2 > 0:
-        for i in range(cSOF2):
-            headList.append(SOF2List[i])
-    for i in range(cDHT):
-        headList.append(DHTList[i])
-    for i in range(cSOS):
-        headList.append(SOSList[i])
-    headList.append(EOFList[0])
-    print(headList)
-    
     
     #writes the entire message to a string
     for item in messageList:
@@ -338,15 +232,16 @@ def encryptJPG():
         
 
     tmpStrLen = len(tmpStr)
+
     cHead = len(headList)
 
     #file header that should not be written over
-    info = data[SOFList[0]:DQTList[0]+5]
+    info = data[headList[0]:headList[1]+5]
     
-
+    cnt = headList[1]+5 # starting count for the file
     #Load the info to write to the file
     s = 0 #counter for string
-    for h in range(1, cHead):
+    for h in range(2, cHead):
         for l in range(cnt, headList[h]):
             if s < tmpStrLen:
                 enc = data[l]
@@ -371,12 +266,13 @@ def encryptJPG():
                 enc = data[l]
                 v = enc.to_bytes(1,'big')
                 info = info + v
+        print("Data stop: ", str(h))
         
-        if (h)< cHead:
+        if (h)< cHead-1:
             info = info + data[headList[h]: headList[h]+5]
             cnt = headList[h]+5
         else:
-            info = info + data[EOFList[0]:EOFList[0]+2]
+            info = info + data[headList[cHead-1]:headList[cHead-1]+2]
         
   
 
