@@ -2,7 +2,9 @@ import sys
 import hashlib
 import binascii
 import re
-#from PIL import Image
+from PIL import Image
+import cv2            # pip install opencv-python
+import numpy as np
 
 #---------
 #Global Variables
@@ -14,14 +16,19 @@ letListQty = [] #Number of letters that can be stored in each section of the ima
 tLet = 0 #Total letters that can be stored
 cHead = "" # Number of items in headList
 headList = [] # Holds stopping points
+red = 0 # Red location in PIXEL
+green = 1 # Green location in PIXEL
+blue = 2 # Blue location in PIXEL
 
 
 #Main Menu and Directions for the program
 def mainMenu():
     print(
-        "Press 1 if you want to encrypt a file.\n" \
-        + "Press 2 if you want to decrypt a file.\n" \
-        + "Press 3 to exit.\n")
+        "Press 1 if you want to encrypt a JPG.\n" \
+        + "Press 2 if you want to encrypt a PNG.\n" \
+        + "Press 3 if you want to decrypt a JPG.\n" \
+        + "Press 4 if you want to decrypt a PNG.\n" \
+        + "Press 5 to exit.\n")
 
     while True:
         try:
@@ -31,22 +38,40 @@ def mainMenu():
             print("Please enter a number 1 - 3.")
 
     if choice == 1:
-        print("Encrypt a message in an image.")
+        print("Encrypt a message into a JPG image.")
         # this is where we will call the encryption function
         openFile()
         loadDataJPG()
         asc2bin()
         bytesNeeded()
         fit()
-        encryptJPG() 
-        
+        encryptJPG()
+    
     elif choice == 2:
-        print("Decrypt a message stored in an image.")
-        # this is where we will call the decryption function
+        print("Encrypt a message into a PNG image.")
+        # this is where we will call the encryption function
+        openFile()
+        loadDataPNG()
+        asc2bin()
+        bytesNeeded()
+        fit()
+        encryptPNG()
+    
     elif choice == 3:
+        print("Decrypt a message stored in JPG image.")
+        # this is where we will call the decryption function
+
+    elif choice == 4:
+        print("Decrypt a message stored in PNG image.")
+        # this is where we will call the decryption function
+        openEncryptedFile()
+        decryptPNG()
+    
+    elif choice == 5:
         sys.exit("\n Thank you for using our Steganography Program!\n")
+    
     else:
-        print("\n Invalid entry.  Please enter a number from 1-3\n")
+        print("\n Invalid entry.  Please enter a number from 1-5\n")
         mainMenu()
 
 #ascii to binary
@@ -60,6 +85,10 @@ def asc2bin():
     ln = len(messageList)
     print(ln)
     print(messageList)
+
+# Generic ASCII to Binary
+def binaryconversion(ascii):
+    return [ format(char, "08b") for char in ascii ]
 
 #bytes needed to hide the image
 def bytesNeeded():
@@ -103,6 +132,28 @@ def openFile():
             file = input("Enter the name of the file you want to use to hide a message in: \n")
     
     #store the original file name to use it in the encoded file name.
+    global fileName
+    fileName = fileName + file
+    
+    data = imgFile.read()
+    imgFile.close()
+    #showFile(file)
+
+# open image file for decryption
+def openEncryptedFile():
+    global data
+    file = input("Enter the name of the file you want to use to decrypt a hidden message from:\n")
+    
+    #Checks to see that the file exists
+    while True:
+        try:
+            imgFile = open(file, 'rb')
+            break
+        except IOError:
+            print('\nThere is no file named ', file)
+            file = input("Enter the name of the file you want to use to decrypt a hidden message from:\n")
+    
+    #store the original file name to use it in the decoded file name.
     global fileName
     fileName = fileName + file
     
@@ -286,8 +337,92 @@ def encryptJPG():
     file.write(info)
     file.close()
 
-#decryption algorithm
+# Calculations for PNG Image Information
+def loadDataPNG():
+    global fileName, tLet
+    png_image = cv2.imread(fileName)
 
+    # Find the total number of letters that can be stored in PNG
+    tLet = png_image.shape[0] * png_image.shape[1] * 3 // 8
+
+# encryption algorithm for PNG
+# Referenced:  https://www.thepythoncode.com/article/hide-secret-data-in-images-using-steganography-python
+def encryptPNG():
+    global fileName, messageList, ln, red, green, blue
+    counter = 0
+    message = ' '.join(messageList)
+    binary_message_len = len(message)
+    png_image = cv2.imread(fileName)
+
+    for row in png_image:
+        for pixel in row:
+            # RGB to Binary
+            red_pixel = ''.join(binaryconversion(pixel))
+            green_pixel = ''.join(binaryconversion(pixel))
+            blue_pixel = ''.join(binaryconversion(pixel))
+
+            # Modify Least Significant Bit for Red, Green, and Blue
+            
+            # Red
+            if counter < binary_message_len:
+                pixel[red] = int(red_pixel[:-1] + message[counter], 2)
+                counter += 1
+
+            # Green
+            if counter < binary_message_len:
+                pixel[green] = int(green_pixel[:-1] + message[counter], 2)
+                counter += 1
+
+            # Blue
+            if counter < binary_message_len:
+                pixel[blue] = int(blue_pixel[:-1] + message[counter], 2)
+                counter += 1
+                
+            # Done
+            if counter >= binary_message_len:
+                break
+    
+    #Set the name for the file being written
+    fName = "encoded_"+fileName
+    cv2.imwrite(fName, png_image)
+    print("Your message has been hidden into:", fName)
+
+
+# decryption algorithm for PNG
+# Referenced:  https://www.thepythoncode.com/article/hide-secret-data-in-images-using-steganography-python
+def decryptPNG():
+    png_image = cv2.imread(fileName)
+    binary = ""
+    chars = ""
+    
+    # Referenced 
+    for row in png_image:
+        for pixel in row:
+            # RGB to Binary
+            
+            # Red
+            red_pixel = ''.join(binaryconversion(pixel))
+            binary += red_pixel[-1]
+
+            # Green
+            green_pixel = ''.join(binaryconversion(pixel))
+            binary += green_pixel[-1]
+            
+            # Blue
+            blue_pixel = ''.join(binaryconversion(pixel))
+            binary += blue_pixel[-1]
+            
+    # Divide up every 8-bits
+    split = [ binary[bit: bit+8] for bit in range(0, len(binary), 8) ]
+
+    # Perform Bit to Character Conversion
+    for char in split:
+        chars += chr(int(char, 2))
+        #TODO: Implement Stopping Criteria
+    #     if chars[-5:] == :
+    #       break
+
+    # print("Decrypted hidden message:", chars[:-5])
 
 #file output information
 
