@@ -4,7 +4,7 @@ import binascii
 import re
 from PIL import Image
 import cv2            # pip install opencv-python
-import numpy as np
+import math ###PNG
 
 #---------
 #Global Variables
@@ -16,9 +16,7 @@ letListQty = [] #Number of letters that can be stored in each section of the ima
 tLet = 0 #Total letters that can be stored
 cHead = "" # Number of items in headList
 headList = [] # Holds stopping points
-red = 0 # Red location in PIXEL
-green = 1 # Green location in PIXEL
-blue = 2 # Blue location in PIXEL
+stringmessage = "" # Global string to store secret message ###PNG
 
 
 #Main Menu and Directions for the program
@@ -35,7 +33,7 @@ def mainMenu():
             choice = int(input("How would you like to proceed: "))
             break
         except ValueError:
-            print("Please enter a number 1 - 3.")
+            print("Please enter a number 1 - 5.")
 
     if choice == 1:
         print("Encrypt a message into a JPG image.")
@@ -78,7 +76,9 @@ def mainMenu():
 def asc2bin():
     global messageList
     global ln
+    global stringmessage ###PNG
     hiddenMessage = input("Please enter the message you would like to hide in the image.\n")
+    stringmessage = hiddenMessage ###PNG
     for l in hiddenMessage:
         letter =' '.join(format(i, 'b') for i in bytearray(l, encoding='utf-8'))
         messageList.append(letter)
@@ -86,9 +86,9 @@ def asc2bin():
     print(ln)
     print(messageList)
 
-# Generic ASCII to Binary
-def binaryconversion(ascii):
-    return [ format(char, "08b") for char in ascii ]
+# Generic ASCII to Binary ###PNG
+# def binaryconversion(ascii):
+    #return [ format(char, "08b") for char in ascii ]
 
 #bytes needed to hide the image
 def bytesNeeded():
@@ -346,42 +346,35 @@ def loadDataPNG():
     tLet = png_image.shape[0] * png_image.shape[1] * 3 // 8
 
 # encryption algorithm for PNG
-# Referenced:  https://www.thepythoncode.com/article/hide-secret-data-in-images-using-steganography-python
+# Referenced:  https://dev.to/erikwhiting88/let-s-hide-a-secret-message-in-an-image-with-python-and-opencv-1jf5
 def encryptPNG():
-    global fileName, messageList, ln, red, green, blue
-    counter = 0
-    message = ' '.join(messageList)
-    binary_message_len = len(message)
+    global fileName, stringmessage ###PNG
+
+    # Read PNG Image using OpenCV Python
     png_image = cv2.imread(fileName)
-
-    for row in png_image:
-        for pixel in row:
-            # RGB to Binary
-            red_pixel = ''.join(binaryconversion(pixel))
-            green_pixel = ''.join(binaryconversion(pixel))
-            blue_pixel = ''.join(binaryconversion(pixel))
-
-            # Modify Least Significant Bit for Red, Green, and Blue
-            
-            # Red
-            if counter < binary_message_len:
-                pixel[red] = int(red_pixel[:-1] + message[counter], 2)
-                counter += 1
-
-            # Green
-            if counter < binary_message_len:
-                pixel[green] = int(green_pixel[:-1] + message[counter], 2)
-                counter += 1
-
-            # Blue
-            if counter < binary_message_len:
-                pixel[blue] = int(blue_pixel[:-1] + message[counter], 2)
-                counter += 1
-                
-            # Done
-            if counter >= binary_message_len:
-                break
     
+    # Generator expresssion using ORD to return unicode character based integer of hidden message
+    message = (ord(character) for character in stringmessage)
+    
+    # Appy the Greatest Common Denominator Method to determine which pixels to change
+    gcd_method = math.gcd(len(png_image), len(png_image[0]))
+    
+    # Iterate through PNG image numpy array to create encoded PNG image
+    for width in range(len(png_image)):
+        for height in range(len(png_image[0])):
+        
+            # Offset by 1 to not introduce divide by zero error
+            if (width + 1 * height + 1) % gcd_method == 0:
+          
+                # Attempt to add next character in hidden message
+                try:
+                    png_image[width - 1][height - 1][0] = next(message)
+          
+                # If execption is thrown, we have reached the end of the hidden message
+                except StopIteration:
+                    png_image[width - 1][height - 1][0] = 0
+                    break
+
     #Set the name for the file being written
     fName = "encoded_"+fileName
     cv2.imwrite(fName, png_image)
@@ -389,40 +382,35 @@ def encryptPNG():
 
 
 # decryption algorithm for PNG
-# Referenced:  https://www.thepythoncode.com/article/hide-secret-data-in-images-using-steganography-python
+# Referenced:  https://dev.to/erikwhiting88/let-s-hide-a-secret-message-in-an-image-with-python-and-opencv-1jf5
 def decryptPNG():
+
+    global fileName
+
+    # Read PNG Image using OpenCV Python
     png_image = cv2.imread(fileName)
-    binary = ""
-    chars = ""
     
-    # Referenced 
-    for row in png_image:
-        for pixel in row:
-            # RGB to Binary
-            
-            # Red
-            red_pixel = ''.join(binaryconversion(pixel))
-            binary += red_pixel[-1]
+    # Appy the Greatest Common Denominator Method to determine which pixels to change
+    gcd_method = math.gcd(len(png_image), len(png_image[0]))
+    
+    # Initialize Variable
+    hidden_message = ''
+    
+    # Iterate through PNG image numpy array to create encoded PNG image
+    for width in range(len(png_image)):
+        for height in range(len(png_image[0])):
+        
+            # Offset by 1 to not introduce divide by zero error
+            # Step through Greatest Common Denominator multiples to store non zero values
+            if (width - 1 * height - 1) % gcd_method == 0:
+                if png_image[width - 1][height - 1][0] != 0:
+                    hidden_message = hidden_message + chr(png_image[width - 1][height - 1][0])
 
-            # Green
-            green_pixel = ''.join(binaryconversion(pixel))
-            binary += green_pixel[-1]
-            
-            # Blue
-            blue_pixel = ''.join(binaryconversion(pixel))
-            binary += blue_pixel[-1]
-            
-    # Divide up every 8-bits
-    split = [ binary[bit: bit+8] for bit in range(0, len(binary), 8) ]
+                # If current value is 0, then we have reached the end of the hidden message
+                else:
+                    break
 
-    # Perform Bit to Character Conversion
-    for char in split:
-        chars += chr(int(char, 2))
-        #TODO: Implement Stopping Criteria
-    #     if chars[-5:] == :
-    #       break
-
-    # print("Decrypted hidden message:", chars[:-5])
+    print("Decrypted hidden message:", hidden_message)
 
 #file output information
 
